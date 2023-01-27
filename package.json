@@ -9,7 +9,9 @@
     "test": "vitest --run",
     "test:coverage": "npm run test -- --coverage",
     "build": "tsc",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "version": "git add -A src",
+    "postversion": "git push && git push --tags"
   },
   "keywords": [
     "bagman",
