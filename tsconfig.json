@@ -1,5 +1,5 @@
 {
-  "extends": "@tsconfig/esm",
+  "extends": "@tsconfig/recommended",
   "compilerOptions": {
     "moduleResolution":"node",
     "outDir": "./dist",
