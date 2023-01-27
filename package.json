@@ -1,6 +1,6 @@
 {
   "name": "bagman",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "js/ts client for Bagman",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
