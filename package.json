@@ -4,7 +4,6 @@
   "description": "js/ts client for Bagman",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "type": "module",
   "scripts": {
     "test": "vitest --run",
     "test:coverage": "npm run test -- --coverage",
