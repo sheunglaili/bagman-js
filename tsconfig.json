@@ -1,0 +1,10 @@
+{
+  "extends": "@tsconfig/esm",
+  "compilerOptions": {
+    "moduleResolution":"node",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+  },
+  "exclude": ["coverage", "test", "dist", "vitest.config.ts"]
+}

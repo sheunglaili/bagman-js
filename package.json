@@ -1,0 +1,31 @@
+{
+  "name": "bagman",
+  "version": "1.0.0",
+  "description": "js/ts client for Bagman",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "test": "vitest --run",
+    "test:coverage": "npm run test -- --coverage",
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "bagman",
+    "real-time",
+    "bi-directional",
+    "socket"
+  ],
+  "author": "sheunglaili",
+  "license": "MIT",
+  "devDependencies": {
+    "@tsconfig/esm": "^1.0.2",
+    "@vitest/coverage-c8": "^0.28.2",
+    "typescript": "^4.9.4",
+    "vitest": "^0.28.2"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.5.4"
+  }
+}
