@@ -1,6 +1,6 @@
 import { vi, it, expect, describe, beforeEach, afterEach } from "vitest";
 
-import { Bagman } from "../src";
+import { Bagman, GlobalEvent } from "../src";
 import { Channel } from "../src/channel";
 import { io } from "socket.io-client";
 
@@ -96,6 +96,25 @@ describe("Bagman", () => {
     it("defaults to http://localhost:8080 when no url is provided", () => {
         new Bagman({});
 
-        expect(vi.mocked(io)).toHaveBeenCalledWith("http://localhost:8080")
+        expect(vi.mocked(io)).toHaveBeenCalledWith("http://localhost:8080", {
+            transports: ["websocket", "polling"],
+            rememberUpgrade: true
+        })
     })
+
+    it.each<GlobalEvent>(["connect", "connect_error", "disconnecting", "disconnect"])("listens to global event: %s", (event) => {
+        const bagman = new Bagman({});
+        const cb = vi.fn();
+
+        bagman.listen(event, cb);
+
+        expect(socket.on).toHaveBeenCalledWith(event, cb);
+    });
+
+    it("throw errors when listening to non-exist global event", () => {
+        const bagman = new Bagman({});
+
+        // @ts-expect-error
+        expect(() => bagman.listen("not-permitted-event", () => {})).toThrowError();
+    });
 });

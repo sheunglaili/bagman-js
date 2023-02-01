@@ -1,7 +1,7 @@
 import { Socket } from "socket.io-client";
 
 export type ServerToClientEvents = {
-    [event: string]: (event: string, ...args: any[]) => void
+    [event: string]: (...args: any[]) => void
 }
 
 export type ClientToServerEvents = {

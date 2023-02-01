@@ -18,7 +18,7 @@ describe("Channel", () => {
 
         channel.listen(event, cb);
 
-        expect(socket.on).toHaveBeenCalledWith(event, cb);
+        expect(socket.on).toHaveBeenCalledWith(`test-channel:${event}`, cb);
     });
 
     it("publishes an event", () => {
