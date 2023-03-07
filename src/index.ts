@@ -2,11 +2,8 @@ import { io } from "socket.io-client"
 import { parse } from "cookie";
 
 import { Channel } from "./channel";
-import { ClientSocket } from "./types";
-
-type BagmanArgs = {
-    url?: string
-}
+import { BagmanConfig, ClientSocket } from "./types";
+import { SecurityContext } from "./security-context";
 
 export type GlobalEvent = "disconnect" | "disconnecting" | "connect" | "connect_error";
 
@@ -14,24 +11,39 @@ const GLOBAL_EVENT: GlobalEvent[] = ["connect", "connect_error", "disconnect", "
 
 export class Bagman {
     /**
+     * Configuration for this Bagman Client
+     * @private
+     */
+    private config: BagmanConfig;
+    /**
      * The socket connection.
      * @private
      */
     private socket: ClientSocket;
 
     /**
+     * The Holder for Authentication
+     * @private
+     */
+    private securityCtx: SecurityContext;
+
+    /**
      * Creates a new `Bagman` instance.
      * @param {BagmanArgs} - The URL for the websocket server.
      */
-    constructor({ url }: BagmanArgs) {
-        this.socket = io(url || "http://localhost:8080", {
+    constructor(config: BagmanConfig) {
+        this.config = config;
+        this.securityCtx = new SecurityContext(config);
+
+        this.socket = io(this.config.url || "http://localhost:8080", {
             transports: ["websocket", "polling"],
-            rememberUpgrade: true
+            rememberUpgrade: true,
+            autoConnect: false,
         });
         // for storing cookies from response if http transport are used
         this.socket.io.on("open", () => {
-            this.socket.io.engine.transport.on("pollComplete", () => {
-                const request = this.socket.io.engine.transport.pollXhr.xhr;
+            this.socket!.io.engine.transport.on("pollComplete", () => {
+                const request = this.socket!.io.engine.transport.pollXhr.xhr;
                 const cookieHeader = request.getResponseHeader("set-cookie");
                 if (!cookieHeader) {
                     return;
@@ -40,13 +52,35 @@ export class Bagman {
                 cookieHeader.forEach((cookieString: string) => {
                     if (cookieString.includes(`${COOKIE_NAME}=`)) {
                         const cookie = parse(cookieString);
-                        this.socket.io.opts.extraHeaders = {
+                        this.socket!.io.opts.extraHeaders = {
                             cookie: `${COOKIE_NAME}=${cookie[COOKIE_NAME]}`
                         }
                     }
                 });
             });
-        })
+        });
+
+        // connect to bagman server if authorized
+        if (this.securityCtx.isAuthorized()) {
+            this.socket.io.opts.extraHeaders = {
+                'x-api-key': this.securityCtx.token()
+            }
+            this.socket.connect();
+        }
+    }
+
+    async authorize() {
+        await this.securityCtx.authorize();
+
+        // connect to bagman server with token
+        if (this.securityCtx.isAuthorized()) {
+            // add api key headers to client
+            // after authorisation
+            this.socket.io.opts.extraHeaders = {
+                'x-api-key': this.securityCtx.token()
+            };
+            this.socket.connect();
+        }
     }
 
     /**
@@ -54,8 +88,10 @@ export class Bagman {
     * @param {string} channel - The channel to subscribe to.
     * @returns {Promise<Channel>} A promise that resolves with a `Channel` instance.
     */
-    subscribe(channel: string): Promise<Channel> {
-        return new Promise<Channel>((resolve, reject) => {
+    async subscribe(channel: string): Promise<Channel> {
+        if (!this.securityCtx.isAuthorized()) throw new Error("Unauthorized. Please authorize client and proceed again.");
+
+        return await new Promise<Channel>((resolve, reject) => {
             this.socket.emit('client:subscribe', { channel }, (ack) => {
                 if (ack.status === "ok") {
                     resolve(new Channel(this.socket, channel));
@@ -79,6 +115,9 @@ export class Bagman {
     }
 
     close() {
-      this.socket.disconnect();
+      // defensive on not connected socket
+      if(this.socket.connected) {
+        this.socket.disconnect();
+      }
     }
 }

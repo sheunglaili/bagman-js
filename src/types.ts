@@ -35,3 +35,25 @@ export type EmissionAck = BaseAck;
 export type EmissionAckCallback = BaseAckCallback<EmissionAck>;
 
 export type ClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+
+export type ConfigResolver<T> =  (() => (Promise<T> | T)) | T | Promise<T>;
+type ExtraHeadersConfig = ConfigResolver<Record<string, string>>;
+type ExtraParamsConfig = ConfigResolver<Record<string, string>>;
+type BodyConfig = ConfigResolver<string>;
+
+export type AuthorizerConfig = {
+    scheme?: string;
+    host: string;
+    port?: number;
+    path: string;
+    method?: string;
+    extraHeaders?: ExtraHeadersConfig;
+    extraParams?: ExtraParamsConfig;
+    body?: BodyConfig
+}
+
+export type BagmanConfig = {
+    url?: string
+    apiKey?: string
+    authorizer?: AuthorizerConfig
+}
