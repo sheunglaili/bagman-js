@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     paths: 
+      - '.github/main.yml'
       - 'src/**'
       - 'test/**'
       - 'package.json'
