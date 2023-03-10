@@ -113,8 +113,8 @@ describe("Bagman", () => {
         new Bagman({ apiKey: "dummy-token" });
 
         expect(vi.mocked(io)).toHaveBeenCalledWith("http://localhost:8080", {
-            transports: ["websocket", "polling"],
-            rememberUpgrade: true,
+            transports: ["polling", "websocket"],
+            rememberUpgrade: false,
             autoConnect: false,
         })
     })
