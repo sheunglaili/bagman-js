@@ -36,8 +36,8 @@ export class Bagman {
         this.securityCtx = new SecurityContext(config);
 
         this.socket = io(this.config.url || "http://localhost:8080", {
-            transports: ["websocket", "polling"],
-            rememberUpgrade: true,
+            transports: ["polling", "websocket"],
+            rememberUpgrade: false,
             autoConnect: false,
         });
         // for storing cookies from response if http transport are used
@@ -64,7 +64,7 @@ export class Bagman {
         if (this.securityCtx.isAuthorized()) {
             this.socket.io.opts.extraHeaders = {
                 'x-api-key': this.securityCtx.token()
-            }
+            };
             this.socket.connect();
         }
     }
