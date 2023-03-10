@@ -1,6 +1,7 @@
 name: CI for main branch
 
 on:
+  workflow_call:
   push:
     branches: [ main ]
     paths: 
