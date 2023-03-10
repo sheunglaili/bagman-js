@@ -53,36 +53,6 @@ describe("Bagman", () => {
         socket.io.opts = {};
     })
 
-    it('should set extra headers when there is a cookie header', () => {
-
-        new Bagman({ apiKey: "dummy-token" });
-
-        const cookieHeader = ['server_id=abcdef'];
-        socket.io.engine.transport.pollXhr.xhr.getResponseHeader.mockReturnValue(cookieHeader);
-
-        const openCallback = socket.io.on.mock.calls[0][1];
-        openCallback();
-
-        const pollCompleteCallback = socket.io.engine.transport.on.mock.calls[0][1];
-        pollCompleteCallback();
-
-        expect(socket.io.opts.extraHeaders).toEqual({ cookie: 'server_id=abcdef' });
-    });
-
-    it('should not set extra headers when there is no cookie header', () => {
-        new Bagman({ apiKey: "dummy-token" });
-
-        socket.io.engine.transport.pollXhr.xhr.getResponseHeader.mockReturnValue(null);
-
-        const openCallback = socket.io.on.mock.calls[0][1];
-        openCallback();
-
-        const pollCompleteCallback = socket.io.engine.transport.on.mock.calls[0][1];
-        pollCompleteCallback();
-
-        expect(socket.io.opts.extraHeaders).toBeUndefined();
-    });
-
     it("subscribes to a channel", () => {
         vi.mocked(SecurityContext.prototype.isAuthorized).mockReturnValue(true);
 
@@ -113,8 +83,7 @@ describe("Bagman", () => {
         new Bagman({ apiKey: "dummy-token" });
 
         expect(vi.mocked(io)).toHaveBeenCalledWith("http://localhost:8080", {
-            transports: ["polling", "websocket"],
-            rememberUpgrade: false,
+            transports: ["websocket"],
             autoConnect: false,
         })
     })
@@ -135,19 +104,19 @@ describe("Bagman", () => {
         expect(() => bagman.listen("not-permitted-event", () => { })).toThrowError();
     });
 
-    it("should set api key as header is api key is passed in", async () => {
+    it("should set api key in query if api key is passed in", async () => {
         vi.mocked(SecurityContext.prototype.isAuthorized).mockReturnValue(true);
         vi.mocked(SecurityContext.prototype.token).mockReturnValue("dummy-token");
 
         new Bagman({ apiKey: "dummy-token" });
 
         expect(socket.connect).toBeCalled();
-        expect(socket.io.opts.extraHeaders).toEqual({
-            'x-api-key': 'dummy-token'
+        expect(socket.io.opts.query).toEqual({
+            'apiKey': 'dummy-token'
         });
     })
 
-    it("should set socket header with x-api-key if authorization success", async () => {
+    it("should set socket query with apiKey if authorization success", async () => {
         vi.mocked(SecurityContext.prototype.isAuthorized).mockReturnValueOnce(false);
         vi.mocked(SecurityContext.prototype.authorize).mockResolvedValue();
         vi.mocked(SecurityContext.prototype.isAuthorized).mockReturnValueOnce(true);
@@ -163,8 +132,8 @@ describe("Bagman", () => {
         await bagman.authorize();
 
         expect(socket.connect).toBeCalled();
-        expect(socket.io.opts.extraHeaders).toEqual({
-            'x-api-key': 'dummy-token'
+        expect(socket.io.opts.query).toEqual({
+            'apiKey': 'dummy-token'
         });
     })
 

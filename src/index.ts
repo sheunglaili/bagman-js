@@ -36,34 +36,14 @@ export class Bagman {
         this.securityCtx = new SecurityContext(config);
 
         this.socket = io(this.config.url || "http://localhost:8080", {
-            transports: ["polling", "websocket"],
-            rememberUpgrade: false,
+            transports: ["websocket"],
             autoConnect: false,
-        });
-        // for storing cookies from response if http transport are used
-        this.socket.io.on("open", () => {
-            this.socket!.io.engine.transport.on("pollComplete", () => {
-                const request = this.socket!.io.engine.transport.pollXhr.xhr;
-                const cookieHeader = request.getResponseHeader("set-cookie");
-                if (!cookieHeader) {
-                    return;
-                }
-                const COOKIE_NAME = 'server_id';
-                cookieHeader.forEach((cookieString: string) => {
-                    if (cookieString.includes(`${COOKIE_NAME}=`)) {
-                        const cookie = parse(cookieString);
-                        this.socket!.io.opts.extraHeaders = {
-                            cookie: `${COOKIE_NAME}=${cookie[COOKIE_NAME]}`
-                        }
-                    }
-                });
-            });
         });
 
         // connect to bagman server if authorized
         if (this.securityCtx.isAuthorized()) {
-            this.socket.io.opts.extraHeaders = {
-                'x-api-key': this.securityCtx.token()
+            this.socket.io.opts.query = {
+                'apiKey': this.securityCtx.token()
             };
             this.socket.connect();
         }
@@ -76,8 +56,8 @@ export class Bagman {
         if (this.securityCtx.isAuthorized()) {
             // add api key headers to client
             // after authorisation
-            this.socket.io.opts.extraHeaders = {
-                'x-api-key': this.securityCtx.token()
+            this.socket.io.opts.query = {
+                'apiKey': this.securityCtx.token()
             };
             this.socket.connect();
         }

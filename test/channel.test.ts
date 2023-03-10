@@ -59,6 +59,17 @@ describe("Channel", () => {
         expect(result).resolves.toEqual(undefined);
     });
 
+    it("should not be able to re-used one unsubscribed from a channel", async () => {
+        const ack = { status: "ok" };
+        
+        // @ts-ignore
+        socket.emit.mockImplementation((event, data, cb) => cb(ack));
+
+        channel.unsubscribe();
+        
+        expect(() => channel.publish("test-channel", {})).toThrowError("Channel: test-channel is deactivated. Please subscribe to this channel again.")
+    });
+
     it("rejects when unsubscribing fails", () => {
         const ack = { status: "error", message: "unsubscribe failed" };
         // @ts-ignore

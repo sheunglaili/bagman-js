@@ -4,6 +4,11 @@ import { ClientSocket } from "./types";
  * A class representing a Channel for the Bagman client.
  */
 export class Channel {
+
+    /**
+     * @param deactivated - Whether this channel is deactivated.
+     */
+    private deactivated: boolean = false;
     /**
      * Creates a new instance of Channel.
      * 
@@ -12,7 +17,7 @@ export class Channel {
      */
     constructor(
         private socket: ClientSocket,
-        private channel: string) { }
+        private channel: string) {}
 
     /**
      * Registers a callback function to be executed when the specified event is emitted.
@@ -38,6 +43,7 @@ export class Channel {
      * @returns Promise<void> - A promise that resolves if the event was successfully published, and rejects if there was an error.
      */
     publish<Data extends any>(event: string, data: Data) {
+        if (this.deactivated) throw new Error(`Channel: ${this.channel} is deactivated. Please subscribe to this channel again.`)
         return new Promise<void>((resolve, reject) => {
             this.socket.emit('client:emit', { channel: this.channel, event, data }, (ack) => {
                 if (ack.status === "ok") {
@@ -58,6 +64,7 @@ export class Channel {
         return new Promise<void>((resolve, reject) => {
             this.socket.emit('client:unsubscribe', { channel: this.channel }, (ack) => {
                 if (ack.status === "ok") {
+                    this.deactivated = true;
                     resolve()
                 } else {
                     reject(new Error(ack.message))
