@@ -1,11 +1,11 @@
 name: CI for main branch
 
 on:
-  workflow_call:
   push:
     branches: [ main ]
     paths: 
       - 'src/**'
+      - 'test/**'
       - 'package.json'
       - 'package-lock.json'
 
