@@ -42,7 +42,7 @@ export class Bagman {
 
         // connect to bagman server if authorized
         if (this.securityCtx.isAuthorized()) {
-            this.socket.io.opts.query = {
+            this.socket.auth = {
                 'apiKey': this.securityCtx.token()
             };
             this.socket.connect();
@@ -56,7 +56,7 @@ export class Bagman {
         if (this.securityCtx.isAuthorized()) {
             // add api key headers to client
             // after authorisation
-            this.socket.io.opts.query = {
+            this.socket.auth = {
                 'apiKey': this.securityCtx.token()
             };
             this.socket.connect();

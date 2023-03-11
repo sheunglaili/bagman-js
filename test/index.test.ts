@@ -111,7 +111,7 @@ describe("Bagman", () => {
         new Bagman({ apiKey: "dummy-token" });
 
         expect(socket.connect).toBeCalled();
-        expect(socket.io.opts.query).toEqual({
+        expect(socket.auth).toEqual({
             'apiKey': 'dummy-token'
         });
     })
@@ -132,7 +132,7 @@ describe("Bagman", () => {
         await bagman.authorize();
 
         expect(socket.connect).toBeCalled();
-        expect(socket.io.opts.query).toEqual({
+        expect(socket.auth).toEqual({
             'apiKey': 'dummy-token'
         });
     })
