@@ -1,4 +1,4 @@
-import { vi, it, expect, describe, beforeEach, Mocked, MockedObject } from "vitest";
+import { vi, it, expect, describe, beforeEach, MockedObject } from "vitest";
 
 import { Channel } from "../src/channel";
 import { ClientSocket } from "../src/types";
@@ -8,7 +8,7 @@ describe("Channel", () => {
     let socket: MockedObject<ClientSocket>;
 
     beforeEach(() => {
-        socket = { on: vi.fn(), emit: vi.fn() } as any;
+        socket = { on: vi.fn(), emitWithAck: vi.fn() } as any;
         channel = new Channel(socket, "test-channel");
     });
 
@@ -18,66 +18,83 @@ describe("Channel", () => {
 
         channel.listen(event, cb);
 
-        expect(socket.on).toHaveBeenCalledWith(`test-channel:${event}`, cb);
+        expect(socket.on).toHaveBeenCalledWith(`channel:test-channel:${event}`, cb);
     });
 
-    it("publishes an event", () => {
+    it("publishes an event", async () => {
         const event = "test-event";
         const data = { test: "data" };
         const ack = { status: "ok" };
         // @ts-ignore
-        socket.emit.mockImplementation((event, data, cb) => cb(ack));
+        socket.emitWithAck.mockResolvedValue(ack);
 
-        const result = channel.publish(event, data);
+        await channel.publish(event, data);
 
-        expect(socket.emit).toHaveBeenCalledWith("client:emit", { channel: "test-channel", event, data }, expect.any(Function));
-        expect(result).resolves.toEqual(undefined);
+        expect(socket.emitWithAck).toHaveBeenCalledWith("client:emit", { channel: "test-channel", event, data });
     });
 
-    it("rejects when publishing fails", () => {
+    it("rejects when publishing fails", async () => {
         const event = "test-event";
         const data = { test: "data" };
         const ack = { status: "error", message: "publish failed" };
         // @ts-ignore
-        socket.emit.mockImplementation((event, data, cb) => cb(ack));
+        socket.emitWithAck.mockResolvedValue(ack);
 
         const result = channel.publish(event, data);
 
-        expect(socket.emit).toHaveBeenCalledWith("client:emit", { channel: "test-channel", event, data }, expect.any(Function));
-        expect(result).rejects.toEqual(new Error("publish failed"));
+        await expect(result).rejects.toThrowError("publish failed");
+        expect(socket.emitWithAck).toHaveBeenCalledWith("client:emit", { channel: "test-channel", event, data });
     });
 
-    it("unsubscribes from a channel", () => {
+    it("unsubscribes from a channel", async () => {
         const ack = { status: "ok" };
-        
+
         // @ts-ignore
-        socket.emit.mockImplementation((event, data, cb) => cb(ack));
+        socket.emitWithAck.mockResolvedValue(ack);
 
-        const result = channel.unsubscribe();
+        const result = await channel.unsubscribe();
 
-        expect(socket.emit).toHaveBeenCalledWith("client:unsubscribe", { channel: "test-channel" }, expect.any(Function));
-        expect(result).resolves.toEqual(undefined);
+        expect(socket.emitWithAck).toHaveBeenCalledWith("client:unsubscribe", { channel: "test-channel" });
+        expect(result).toEqual(undefined);
     });
 
-    it("should not be able to re-used one unsubscribed from a channel", async () => {
+    it("should not be able to re-used unsubscribed", async () => {
         const ack = { status: "ok" };
-        
-        // @ts-ignore
-        socket.emit.mockImplementation((event, data, cb) => cb(ack));
 
-        channel.unsubscribe();
-        
-        expect(() => channel.publish("test-channel", {})).toThrowError("Channel: test-channel is deactivated. Please subscribe to this channel again.")
+        // @ts-ignore
+        socket.emitWithAck.mockResolvedValue(ack);
+
+        await channel.unsubscribe();
+
+        await expect(channel.publish("test-channel", {})).rejects.toThrowError("Channel: test-channel is deactivated. Please subscribe to this channel again.")
     });
 
-    it("rejects when unsubscribing fails", () => {
+    it("rejects when unsubscribing fails", async () => {
         const ack = { status: "error", message: "unsubscribe failed" };
         // @ts-ignore
-        socket.emit.mockImplementation((event, data, cb) => cb(ack));
+        socket.emitWithAck.mockResolvedValue(ack);
 
         const result = channel.unsubscribe();
 
-        expect(socket.emit).toHaveBeenCalledWith("client:unsubscribe", { channel: "test-channel" }, expect.any(Function));
-        expect(result).rejects.toEqual(new Error("unsubscribe failed"));
+        await expect(result).rejects.toThrowError("unsubscribe failed");
+        expect(socket.emitWithAck).toHaveBeenCalledWith("client:unsubscribe", { channel: "test-channel" });
     });
+
+    it("should fetch presences ", async () => {
+        const ack = { presences: [{ id: '123' }, { id: '456' }] };
+        // @ts-ignore
+        socket.emitWithAck.mockResolvedValue(ack);
+
+        const result = await channel.presences();
+
+        expect(result).toEqual(ack.presences);
+    })
+
+    it("should handle fetch exception", async () => {
+        const ack = { status: "error", message: "Failed to fetch presences." };
+        // @ts-ignore
+        socket.emitWithAck.mockResolvedValue(ack);
+
+        expect(channel.presences()).rejects.toThrowError(ack.message);
+    })
 });

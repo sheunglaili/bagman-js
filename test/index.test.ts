@@ -19,7 +19,7 @@ vi.mock("socket.io-client", () => {
         connected: false,
         connect: vi.fn(),
         disconnect: vi.fn(),
-        emit: vi.fn(),
+        emitWithAck: vi.fn(),
         on: vi.fn(),
         io: {
             on: vi.fn(),
@@ -53,30 +53,30 @@ describe("Bagman", () => {
         socket.io.opts = {};
     })
 
-    it("subscribes to a channel", () => {
+    it("subscribes to a channel", async () => {
         vi.mocked(SecurityContext.prototype.isAuthorized).mockReturnValue(true);
 
         const channel = "test-channel";
         const ack = { status: "ok" };
-        socket.emit.mockImplementation((event, data, cb) => cb(ack));
+        socket.emitWithAck.mockResolvedValue(ack);
 
         const bagman = new Bagman({ url: "http://test-url.com", apiKey: "dummy-token" });
         const result = bagman.subscribe(channel);
 
-        expect(socket.emit).toHaveBeenCalledWith("client:subscribe", { channel }, expect.any(Function));
-        expect(result).resolves.toEqual(new Channel(socket, channel));
+        await expect(result).resolves.toEqual(new Channel(socket, channel));
+        expect(socket.emitWithAck).toHaveBeenCalledWith("client:subscribe", { channel });
     });
 
-    it("rejects when subscription fails", () => {
+    it("rejects when subscription fails", async () => {
         const channel = "test-channel";
         const ack = { status: "error", message: "subscription failed" };
-        socket.emit.mockImplementation((event, data, cb) => cb(ack));
+        socket.emitWithAck.mockResolvedValue(ack);
 
         const bagman = new Bagman({ url: "http://test-url.com", apiKey: "dummy-token" });
         const result = bagman.subscribe(channel);
 
-        expect(socket.emit).toHaveBeenCalledWith("client:subscribe", { channel }, expect.any(Function));
-        expect(result).rejects.toEqual(new Error("subscription failed"));
+        await expect(result).rejects.toThrowError("subscription failed");
+        expect(socket.emitWithAck).toHaveBeenCalledWith("client:subscribe", { channel });
     });
 
     it("defaults to http://localhost:8080 when no url is provided", () => {

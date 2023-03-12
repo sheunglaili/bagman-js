@@ -71,15 +71,12 @@ export class Bagman {
     async subscribe(channel: string): Promise<Channel> {
         if (!this.securityCtx.isAuthorized()) throw new Error("Unauthorized. Please authorize client and proceed again.");
 
-        return await new Promise<Channel>((resolve, reject) => {
-            this.socket.emit('client:subscribe', { channel }, (ack) => {
-                if (ack.status === "ok") {
-                    resolve(new Channel(this.socket, channel));
-                } else {
-                    reject(new Error(ack.message));
-                }
-            });
-        })
+        const ack = await this.socket.emitWithAck('client:subscribe', { channel });
+        if (ack.status === "error") {
+            throw new Error(ack.message);
+        }
+        
+        return new Channel(this.socket, channel);
     }
 
     /**
@@ -95,9 +92,9 @@ export class Bagman {
     }
 
     close() {
-      // defensive on not connected socket
-      if(this.socket.connected) {
-        this.socket.disconnect();
-      }
+        // defensive on not connected socket
+        if (this.socket.connected) {
+            this.socket.disconnect();
+        }
     }
 }

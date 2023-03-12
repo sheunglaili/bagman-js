@@ -1,4 +1,4 @@
-import { ClientSocket } from "./types";
+import { ClientSocket, Presence } from "./types";
 
 /**
  * A class representing a Channel for the Bagman client.
@@ -29,7 +29,21 @@ export class Channel {
      * @returns void
      */
     listen<T extends [...any[]]>(event: string, cb: (...args: T) => Promise<void> | void) {
-        this.socket.on(`${this.channel}:${event}`, cb as (...args: any[]) => void);
+        this.socket.on(`channel:${this.channel}:${event}`, cb as (...args: any[]) => void);
+    }
+
+    /**
+     * Fetch Presences of the current channel.
+     * 
+     * @template T - the type of presence that you expected to receive
+     * @returns - list of presences that's within this channel
+     */
+    async presences<T>(): Promise<Presence<T>[]> {
+        const ack = await this.socket.emitWithAck(`presence:fetch`, { channel: this.channel });
+        if ("status" in ack) {
+            throw new Error(ack.message);
+        }
+        return ack.presences as Presence<T>[]
     }
 
 
@@ -42,17 +56,13 @@ export class Channel {
      * 
      * @returns Promise<void> - A promise that resolves if the event was successfully published, and rejects if there was an error.
      */
-    publish<Data extends any>(event: string, data: Data) {
+    async publish<Data extends any>(event: string, data: Data) {
         if (this.deactivated) throw new Error(`Channel: ${this.channel} is deactivated. Please subscribe to this channel again.`)
-        return new Promise<void>((resolve, reject) => {
-            this.socket.emit('client:emit', { channel: this.channel, event, data }, (ack) => {
-                if (ack.status === "ok") {
-                    resolve()
-                } else {
-                    reject(new Error(ack.message))
-                }
-            })
-        })
+        
+        const ack = await this.socket.emitWithAck('client:emit', { channel: this.channel, event, data});
+        if (ack.status !== "ok") {
+            throw new Error(ack.message);
+        }
     }
 
     /**
@@ -60,16 +70,11 @@ export class Channel {
      * 
      * @returns Promise<void> - A promise that resolves if the unsubscribe was successful, and rejects if there was an error.
      */
-    unsubscribe() {
-        return new Promise<void>((resolve, reject) => {
-            this.socket.emit('client:unsubscribe', { channel: this.channel }, (ack) => {
-                if (ack.status === "ok") {
-                    this.deactivated = true;
-                    resolve()
-                } else {
-                    reject(new Error(ack.message))
-                }
-            })
-        })
+    async unsubscribe() {
+        this.deactivated = true;
+        const ack = await this.socket.emitWithAck('client:unsubscribe', { channel: this.channel });
+        if (ack.status !== "ok") {
+            throw new Error(ack.message);
+        }
     }
 }
